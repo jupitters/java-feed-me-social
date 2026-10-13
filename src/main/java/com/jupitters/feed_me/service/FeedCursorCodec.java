@@ -11,9 +11,9 @@ public class FeedCursorCodec {
     private static final String SEPARATOR = "|";
     private static final String SEPARATOR_REGEX = Pattern.quote(SEPARATOR);
 
-    private FeedCursorCodec() {}
+    public FeedCursorCodec() {}
 
-    static FeedCursor parse(String cursor) {
+    public static FeedCursor parse(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;
         }
@@ -32,13 +32,13 @@ public class FeedCursorCodec {
         }
     }
 
-    static String encode(FeedItemResponse item) {
+    public static String encode(FeedItemResponse item) {
         return encode(item.createdAt(), item.postId());
     }
 
-    static String encode(Instant createdAt, String postId) {
+    public static String encode(Instant createdAt, String postId) {
         return createdAt.toEpochMilli() + SEPARATOR + postId;
     }
 
-    record FeedCursor(Instant createdAt, String postId){}
+    public record FeedCursor(Instant createdAt, String postId){}
 }
