@@ -1,0 +1,16 @@
+package com.jupitters.feed_me.dto;
+
+import java.time.Instant;
+
+public record FeedItemResponse(
+        String postId,
+        String authorId,
+        String authorHandle,
+        String authorName,
+        String content,
+        Instant createdAt,
+        double rankingScore,
+        String deliveryStrategy,
+        String rankingReason
+) {
+}
