@@ -1,5 +1,6 @@
 package com.jupitters.feed_me.service.impl;
 
+import com.jupitters.feed_me.dto.FeedItemResponse;
 import com.jupitters.feed_me.dto.TimelinePageResponse;
 import com.jupitters.feed_me.model.FollowRelation;
 import com.jupitters.feed_me.model.UserProfile;
@@ -75,9 +76,6 @@ public class FeedServiceImpl implements FeedService {
         return new VisibleAuthors(allAuthorIds, hotAuthorIds, nonHotAuthorIds);
     }
 
-    private record VisibleAuthors(Set<String> allAuthorIds, Set<String> hotAuthorIds, Set<String> nonHotAuthorIds) {
-    }
-
     private UserProfile getUser(String userId) {
         return userProfileRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -89,4 +87,11 @@ public class FeedServiceImpl implements FeedService {
         }
         return Math.min(limit, 20);
     }
+
+    private record VisibleAuthors(Set<String> allAuthorIds, Set<String> hotAuthorIds, Set<String> nonHotAuthorIds) {
+    }
+
+    private record NormalFeedSliceResult(FeedSlice slice, String cacheOutcome) {}
+
+    private record FeedSlice(List<FeedItemResponse> items, boolean hasMore) {}
 }
