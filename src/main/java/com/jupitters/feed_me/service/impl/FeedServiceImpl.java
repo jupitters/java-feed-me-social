@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -48,6 +49,30 @@ public class FeedServiceImpl implements FeedService {
 
     private VisibleAuthors getVisibleAuthors(UserProfile viewer) {
         List<FollowRelation> followRelations = followRelationRepository.findByFollower_Id(viewer.getId());
+
+        Set<String> allAuthorIds = new LinkedHashSet<>();
+        Set<String> hotAuthorIds = new LinkedHashSet<>();
+        Set<String> nonHotAuthorIds = new LinkedHashSet<>();
+
+        allAuthorIds.add(viewer.getId());
+
+        if(viewer.isHotUser()) {
+            hotAuthorIds.add(viewer.getId());
+        } else {
+            nonHotAuthorIds.add(viewer.getId());
+        }
+
+        for(FollowRelation relation : followRelations) {
+            UserProfile author = relation.getTargetUser();
+            allAuthorIds.add(author.getId());
+            if(viewer.isHotUser()) {
+                hotAuthorIds.add(viewer.getId());
+            } else {
+                nonHotAuthorIds.add(viewer.getId());
+            }
+        }
+
+        return new VisibleAuthors(allAuthorIds, hotAuthorIds, nonHotAuthorIds);
     }
 
     private record VisibleAuthors(Set<String> allAuthorIds, Set<String> hotAuthorIds, Set<String> nonHotAuthorIds) {
