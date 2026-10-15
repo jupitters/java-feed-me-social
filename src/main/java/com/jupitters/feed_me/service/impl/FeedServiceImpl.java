@@ -6,6 +6,7 @@ import com.jupitters.feed_me.model.FollowRelation;
 import com.jupitters.feed_me.model.Post;
 import com.jupitters.feed_me.model.UserProfile;
 import com.jupitters.feed_me.repository.FollowRelationRepository;
+import com.jupitters.feed_me.repository.PostRepository;
 import com.jupitters.feed_me.repository.UserProfileRepository;
 import com.jupitters.feed_me.service.FeedCacheService;
 import com.jupitters.feed_me.service.FeedCursorCodec;
@@ -33,6 +34,7 @@ public class FeedServiceImpl implements FeedService {
     private final UserProfileRepository userProfileRepository;
     private final FollowRelationRepository followRelationRepository;
     private final FeedCacheService feedCacheService;
+    private final PostRepository postRepository;
 
     @Override
     public TimelinePageResponse getHomeFeed(String userId, String cursor, int limit) {
@@ -69,13 +71,16 @@ public class FeedServiceImpl implements FeedService {
         }
 
         List<Post> posts = fetchHomeFeedPosts(nonHotAuthorIds, pageCursor, pageSize + 1);
+
     }
 
     private List<Post> fetchHomeFeedPosts(Set<String> authorIds, FeedCursorCodec.FeedCursor pageCursor, int fetchSize) {
         PageRequest pageRequest = PageRequest.of(0, fetchSize);
         if (pageCursor == null) {
-            return
+            return postRepository.findByAuthor_IdInOrderByCreatedAtDescIdDesc(authorIds, pageRequest);
         }
+
+        return postRepository.findHomeFeedPageAfterCursor(authorIds, pageCursor.createdAt(), pageCursor.postId(), pageRequest);
     }
 
     private Optional<FeedSlice> getCachedNormalHomeFeedSlice(String userId, FeedCursorCodec.FeedCursor cursor, int pageSize) {
