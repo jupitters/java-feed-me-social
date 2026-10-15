@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -29,6 +30,7 @@ public class FeedServiceImpl implements FeedService {
     private final FeedMetricsService feedMetricsService;
     private final UserProfileRepository userProfileRepository;
     private final FollowRelationRepository followRelationRepository;
+    private final FeedCacheService feedCacheService;
 
     @Override
     public TimelinePageResponse getHomeFeed(String userId, String cursor, int limit) {
@@ -39,6 +41,10 @@ public class FeedServiceImpl implements FeedService {
         try {
             UserProfile viewer = getUser(userId);
             FeedCursorCodec.FeedCursor pageCursor = FeedCursorCodec.parse(cursor);
+            VisibleAuthors visibleAuthors = getVisibleAuthors(viewer);
+
+            NormalFeedSliceResult normalFeedSliceResult = getNormalHomeFeedSlice(viewer.getId(), visibleAuthors.nonHotAuthorIds(), pageCursor, pageSize);
+            FeedSlice hotSlice = getHotHomeFeedSlice(viewer.getId(), visibleAuthors, pageCursor, pageSize);
 
         } catch (ResponseStatusException e) {
             feedMetricsService.recordServiceError("get_home_feed", e.getStatusCode().toString());
@@ -47,6 +53,29 @@ public class FeedServiceImpl implements FeedService {
 
         return null;
     }
+
+    private NormalFeedSliceResult getNormalHomeFeedSlice(String userId, Set<String> nonHotAuthorIds, FeedCursorCodec.FeedCursor pageCursor, int pageSize) {
+        if(nonHotAuthorIds.isEmpty()) {
+            FeedSlice slice = new FeedSlice(List.of(), false);
+            return new NormalFeedSliceResult(slice, "empty_non_hot");
+        }
+
+        Optional<FeedSlice> cachedSlice = getCachedNormalHomeFeedSlice(userId, pageCursor, pageSize);
+    }
+
+    private Optional<FeedSlice> getCachedNormalHomeFeedSlice(String userId, FeedCursorCodec.FeedCursor cursor, int pageSize) {
+        if(cursor != null) {
+            feedMetricsService.recordHomeFeedCacheLookup("bypass_cursor");
+            return Optional.empty();
+        }
+        if(pageSize > FeedCacheService.DEFAULT_PAGE_SIZE) {
+            feedMetricsService.recordHomeFeedCacheLookup("bypass_page_size");
+            return Optional.empty();
+        }
+
+        Optional<TimelinePageResponse> cachedPage = feedCacheService.getHomeFeed(userId);
+    }
+
 
     private VisibleAuthors getVisibleAuthors(UserProfile viewer) {
         List<FollowRelation> followRelations = followRelationRepository.findByFollower_Id(viewer.getId());

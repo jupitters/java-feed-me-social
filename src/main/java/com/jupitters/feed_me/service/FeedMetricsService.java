@@ -125,4 +125,8 @@ public class FeedMetricsService {
     public void recordDeliveryPath(String deliveryPath) {
         meterRegistry.counter("feedme.feed.delivery.path", "path", deliveryPath).increment();
     }
+
+    public void recordCacheMutation(String action) {
+        meterRegistry.counter("feedme.feed.cache.mutations", "action", action).increment();
+    }
 }
