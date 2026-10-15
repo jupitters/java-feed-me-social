@@ -74,6 +74,25 @@ public class FeedServiceImpl implements FeedService {
         }
 
         Optional<TimelinePageResponse> cachedPage = feedCacheService.getHomeFeed(userId);
+
+        if(cachedPage.isEmpty()) {
+            feedMetricsService.recordHomeFeedCacheLookup("miss");
+            return Optional.empty();
+        }
+
+        Optional<FeedSlice> adapted = adaptCachedFirstPage(cachedPage.get(), pageSize);
+        feedMetricsService.recordHomeFeedCacheLookup(adapted.isPresent() ? "hit" : "imcomplete");
+        return adapted;
+    }
+
+    private Optional<FeedSlice> adaptCachedFirstPage(TimelinePageResponse cachedPage, int pageSize) {
+        if(cachedPage.items().size() < pageSize && cachedPage.nextCursor() != null) {
+            return Optional.empty();
+        }
+        List<FeedItemResponse> pageItems = cachedPage.items().stream().limit(pageSize).toList();
+        FeedSlice slice = new FeedSlice(pageItems, cachedPage.totalItems() > pageItems.size());
+
+        return Optional.of(slice);
     }
 
 
