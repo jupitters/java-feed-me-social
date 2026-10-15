@@ -3,6 +3,7 @@ package com.jupitters.feed_me.service.impl;
 import com.jupitters.feed_me.dto.FeedItemResponse;
 import com.jupitters.feed_me.dto.TimelinePageResponse;
 import com.jupitters.feed_me.model.FollowRelation;
+import com.jupitters.feed_me.model.Post;
 import com.jupitters.feed_me.model.UserProfile;
 import com.jupitters.feed_me.repository.FollowRelationRepository;
 import com.jupitters.feed_me.repository.UserProfileRepository;
@@ -13,6 +14,7 @@ import com.jupitters.feed_me.service.FeedService;
 
 import jakarta.transaction.Status;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +63,19 @@ public class FeedServiceImpl implements FeedService {
         }
 
         Optional<FeedSlice> cachedSlice = getCachedNormalHomeFeedSlice(userId, pageCursor, pageSize);
+
+        if(cachedSlice.isPresent()) {
+            return new NormalFeedSliceResult(cachedSlice.get(), "hit");
+        }
+
+        List<Post> posts = fetchHomeFeedPosts(nonHotAuthorIds, pageCursor, pageSize + 1);
+    }
+
+    private List<Post> fetchHomeFeedPosts(Set<String> authorIds, FeedCursorCodec.FeedCursor pageCursor, int fetchSize) {
+        PageRequest pageRequest = PageRequest.of(0, fetchSize);
+        if (pageCursor == null) {
+            return
+        }
     }
 
     private Optional<FeedSlice> getCachedNormalHomeFeedSlice(String userId, FeedCursorCodec.FeedCursor cursor, int pageSize) {
