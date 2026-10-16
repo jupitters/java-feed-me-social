@@ -38,7 +38,7 @@ public class FeedCacheService {
         return "feed:home:" + userId;
     }
 
-    private void cacheHomeFeed(TimelinePageResponse timelinePageResponse) {
+    public void cacheHomeFeed(TimelinePageResponse timelinePageResponse) {
         writeHomeFeed(timelinePageResponse);
         feedMetricsService.recordCacheMutation("write_first_page");
     }

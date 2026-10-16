@@ -81,9 +81,17 @@ public class FeedServiceImpl implements FeedService {
             TimelinePageResponse tpResponse = new TimelinePageResponse(
                     userId,
                     TimelineMode.HOME,
-                    Math.toIntExact(postRepository.countByAuthor_IdIn(nonHotAuthorIds));
-            )
+                    Math.toIntExact(postRepository.countByAuthor_IdIn(nonHotAuthorIds)),
+                    slice.items,
+                    slice.hasMore() && !slice.items.isEmpty()
+                    ? FeedCursorCodec.encode(
+                            slice.items().get(slice.items().size() - 1)
+                    ) : null
+            );
+
+            feedCacheService.cacheHomeFeed(tpResponse);
         }
+        return new NormalFeedSliceResult(slice, "miss");
     }
 
     private FeedSlice buildFeedSlice(List<Post> posts, int pageSize, String userId, Set<String> visibleAuthorIds) {

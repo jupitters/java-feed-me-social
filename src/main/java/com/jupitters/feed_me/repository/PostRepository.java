@@ -26,4 +26,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
                             order by p.createdAt desc, p.id desc
      """)
     List<Post> findHomeFeedPageAfterCursor(@Param("authorIds") Collection<String> authorIds, @Param("createdAt") Instant createdAt, @Param("postId") String postId, Pageable pageable);
+
+
+    long countByAuthor_IdIn(Set<String> nonHotAuthorIds);
 }
