@@ -24,15 +24,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class FeedServiceImpl implements FeedService {
+    private static final Comparator<FeedItemResponse> FEED_ORDER =
+            Comparator.comparing(FeedItemResponse::createdAt)
+                    .thenComparing(FeedItemResponse::postId)
+                    .reversed();
+
     private final FeedMetricsService feedMetricsService;
     private final UserProfileRepository userProfileRepository;
     private final FollowRelationRepository followRelationRepository;
@@ -55,7 +57,7 @@ public class FeedServiceImpl implements FeedService {
 
             int totalItems = Math.toIntExact(postRepository.countByAuthor_IdIn(visibleAuthors.allAuthorIds));
 
-            TimelinePageResponse response = mergeHomeFeedSlices(userId, totalItems, pageSize, normalFeedSliceResult, hotSlice);
+            TimelinePageResponse response = mergeHomeFeedSlices(userId, totalItems, pageSize, normalFeedSliceResult.slice, hotSlice);
 
             feedMetricsService.recordHomeFeedRequest(startedAtNanos, normalFeedSliceResult.cacheOutcome,
                     determineMergeMode(normalFeedSliceResult.slice, hotSlice),
@@ -67,11 +69,70 @@ public class FeedServiceImpl implements FeedService {
             feedMetricsService.recordServiceError("get_home_feed", e.getStatusCode().toString());
             throw e;
         }
-
-        return null;
     }
 
-    private String determineMergeMode(FeedSlice slice, FeedSlice hotSlice) {
+    private TimelinePageResponse mergeHomeFeedSlices(String userId, int totalItems, int pageSize, FeedSlice normalSlice, FeedSlice hotSlice) {
+        List<FeedItemResponse> mergedItems = new ArrayList<>(pageSize + 1);
+
+        int normalIndex = 0;
+        int hotIndex = 0;
+        int normalItemsUsed = 0;
+        int hotItemsUsed = 0;
+
+        while (mergedItems.size() < pageSize + 1 &&
+                (normalIndex < normalSlice.items().size() || hotIndex < hotSlice.items().size())) {
+            FeedItemResponse nextNormal = normalIndex < normalSlice.items().size() ? normalSlice.items().get(normalIndex) : null;
+            FeedItemResponse nextHot = hotIndex < hotSlice.items().size() ? hotSlice.items().get(hotIndex) : null;
+
+            if(nextHot == null || (nextNormal != null && FEED_ORDER.compare(nextNormal, nextHot) <= 0)) {
+                mergedItems.add(nextNormal);
+                normalIndex++;
+                normalItemsUsed++;
+            } else {
+                mergedItems.add(nextHot);
+                hotIndex++;
+                hotItemsUsed++;
+            }
+        }
+
+        boolean hasMore = mergedItems.size() > pageSize
+                || normalIndex < normalSlice.items().size()
+                || hotIndex < hotSlice.items().size()
+                || normalSlice.hasMore()
+                || hotSlice.hasMore();
+
+        List<FeedItemResponse> pageItems = mergedItems.size() > pageSize ? mergedItems.subList(0, pageSize) : mergedItems;
+
+        String nextCursor = hasMore && !pageItems.isEmpty() ? FeedCursorCodec.encode(pageItems.get(pageItems.size() - 1)) : null;
+
+        feedMetricsService.recordHomeFeedMerge(determineMergeMode(normalSlice, hotSlice), normalItemsUsed, hotItemsUsed);
+
+        return new TimelinePageResponse(
+                userId,
+                TimelineMode.HOME,
+                totalItems,
+                pageItems,
+                nextCursor
+        );
+    }
+
+    private String determineMergeMode(FeedSlice normalSlice, FeedSlice hotSlice) {
+        boolean hasNormal = !normalSlice.items().isEmpty();
+        boolean hasHot = !hotSlice.items.isEmpty();
+
+        if(hasNormal && hasHot) {
+            return "mixed";
+        }
+
+        if(hasNormal) {
+            return "normal_only";
+        }
+
+        if(hasHot) {
+            return "hot_only";
+        }
+
+        return "empty";
     }
 
     private FeedSlice getHotHomeFeedSlice(String userId, Set<String> hotAuthorIds, FeedCursorCodec.FeedCursor pageCursor, int pageSize) {
