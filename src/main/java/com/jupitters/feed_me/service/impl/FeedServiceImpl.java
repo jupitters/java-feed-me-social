@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -72,6 +74,47 @@ public class FeedServiceImpl implements FeedService {
 
         List<Post> posts = fetchHomeFeedPosts(nonHotAuthorIds, pageCursor, pageSize + 1);
 
+
+    }
+
+    private FeedSlice buildFeedSlice(List<Post> posts, int pageSize, String userId, Set<String> visibleAuthorIds) {
+        boolean hasMore = posts.size() > pageSize;
+        List<Post> pagePosts = hasMore ? posts.subList(0, pageSize) : posts;
+
+        List<FeedItemResponse> pageItems = pagePosts.stream()
+                .map(post -> toFeedItem(post, userId, visibleAuthorIds))
+                .toList();
+
+        return new FeedSlice(pageItems, hasMore);
+    }
+
+    private FeedItemResponse toFeedItem(Post post, String viewerId, Set<String> visibleAuthorIds) {
+        UserProfile author = post.getAuthor();
+
+        double freshnessWindow = 600.0;
+        double recencyScore = 1.0 - Duration.between(post.getCreatedAt(), Instant.now()).toMinutes() / freshnessWindow;
+
+        double hotUserPenalty = author.isHotUser() ? 0.15 : 0.0;
+
+        double affinityBoost = visibleAuthorIds.contains(author.getId()) && viewerId.equals(author.getId()) ? 0.0 : 0.2;
+
+        double rankingScore = Math.round((recencyScore + affinityBoost - hotUserPenalty) * 100.0) / 100.0;
+
+        String deliveryStrategy = author.isHotUser() ? "hybrid-pull" : "fan-out-write";
+
+        String rankingReason = author.isHotUser() ? "Hot-user content is blended with a pull-based to reduce write amplifications" : "Recent content on followed accounts is promoted for freshness and affinity";
+
+        return new FeedItemResponse(
+                post.getId(),
+                author.getId(),
+                author.getHandle(),
+                author.getName(),
+                post.getContent(),
+                post.getCreatedAt(),
+                rankingScore,
+                deliveryStrategy,
+                rankingReason
+        );
     }
 
     private List<Post> fetchHomeFeedPosts(Set<String> authorIds, FeedCursorCodec.FeedCursor pageCursor, int fetchSize) {
