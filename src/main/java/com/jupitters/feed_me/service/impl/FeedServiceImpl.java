@@ -51,14 +51,37 @@ public class FeedServiceImpl implements FeedService {
             VisibleAuthors visibleAuthors = getVisibleAuthors(viewer);
 
             NormalFeedSliceResult normalFeedSliceResult = getNormalHomeFeedSlice(viewer.getId(), visibleAuthors.nonHotAuthorIds(), pageCursor, pageSize);
-            FeedSlice hotSlice = getHotHomeFeedSlice(viewer.getId(), visibleAuthors, pageCursor, pageSize);
+            FeedSlice hotSlice = getHotHomeFeedSlice(viewer.getId(), visibleAuthors.hotAuthorIds, pageCursor, pageSize);
 
+            int totalItems = Math.toIntExact(postRepository.countByAuthor_IdIn(visibleAuthors.allAuthorIds));
+
+            TimelinePageResponse response = mergeHomeFeedSlices(userId, totalItems, pageSize, normalFeedSliceResult, hotSlice);
+
+            feedMetricsService.recordHomeFeedRequest(startedAtNanos, normalFeedSliceResult.cacheOutcome,
+                    determineMergeMode(normalFeedSliceResult.slice, hotSlice),
+                    response.nextCursor() != null,
+                    response.items().size());
+
+            return response;
         } catch (ResponseStatusException e) {
             feedMetricsService.recordServiceError("get_home_feed", e.getStatusCode().toString());
             throw e;
         }
 
         return null;
+    }
+
+    private String determineMergeMode(FeedSlice slice, FeedSlice hotSlice) {
+    }
+
+    private FeedSlice getHotHomeFeedSlice(String userId, Set<String> hotAuthorIds, FeedCursorCodec.FeedCursor pageCursor, int pageSize) {
+        if(hotAuthorIds.isEmpty()) {
+            return new FeedSlice(List.of(), false);
+        }
+
+        List<Post> posts = fetchHomeFeedPosts(hotAuthorIds, pageCursor, pageSize + 1);
+
+        return buildFeedSlice(posts, pageSize, userId, hotAuthorIds);
     }
 
     private NormalFeedSliceResult getNormalHomeFeedSlice(String userId, Set<String> nonHotAuthorIds, FeedCursorCodec.FeedCursor pageCursor, int pageSize) {
