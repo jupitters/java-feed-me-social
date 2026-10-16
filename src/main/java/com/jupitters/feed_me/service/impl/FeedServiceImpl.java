@@ -1,6 +1,7 @@
 package com.jupitters.feed_me.service.impl;
 
 import com.jupitters.feed_me.dto.FeedItemResponse;
+import com.jupitters.feed_me.dto.TimelineMode;
 import com.jupitters.feed_me.dto.TimelinePageResponse;
 import com.jupitters.feed_me.model.FollowRelation;
 import com.jupitters.feed_me.model.Post;
@@ -74,7 +75,15 @@ public class FeedServiceImpl implements FeedService {
 
         List<Post> posts = fetchHomeFeedPosts(nonHotAuthorIds, pageCursor, pageSize + 1);
 
+        FeedSlice slice = buildFeedSlice(posts, pageSize, userId, nonHotAuthorIds);
 
+        if(pageCursor == null && pageSize == FeedCacheService.DEFAULT_PAGE_SIZE) {
+            TimelinePageResponse tpResponse = new TimelinePageResponse(
+                    userId,
+                    TimelineMode.HOME,
+                    Math.toIntExact(postRepository.countByAuthor_IdIn(nonHotAuthorIds));
+            )
+        }
     }
 
     private FeedSlice buildFeedSlice(List<Post> posts, int pageSize, String userId, Set<String> visibleAuthorIds) {
