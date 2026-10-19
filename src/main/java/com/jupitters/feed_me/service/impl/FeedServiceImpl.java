@@ -71,6 +71,34 @@ public class FeedServiceImpl implements FeedService {
         }
     }
 
+    @Override
+    public TimelinePageResponse getUserFeed(String userId, String cursor, int limit) {
+        long startedAtNanos = feedMetricsService.startTimer();
+        int pageSize = normalizeLimit(limit);
+
+        feedMetricsService.recordUserFeedRequestedPageSize(limit, pageSize);
+
+        try{
+            getUser(userId);
+
+            FeedCursorCodec.FeedCursor pageCursor = FeedCursorCodec.parse(cursor);
+            List<Post> posts = fetchUserFeedPosts(userId, pageCursor, pageSize + 1);
+
+        }catch(ResponseStatusException e) {
+            feedMetricsService.recordServiceError(
+                    "get_user_feed",
+                    e.getStatusCode().toString()
+            );
+            throw e;
+        }
+
+        return null;
+    }
+
+    private List<Post> fetchUserFeedPosts(String userId, FeedCursorCodec.FeedCursor pageCursor, int fetchSize) {
+
+    }
+
     private TimelinePageResponse mergeHomeFeedSlices(String userId, int totalItems, int pageSize, FeedSlice normalSlice, FeedSlice hotSlice) {
         List<FeedItemResponse> mergedItems = new ArrayList<>(pageSize + 1);
 
