@@ -4,4 +4,6 @@ import com.jupitters.feed_me.dto.TimelinePageResponse;
 
 public interface FeedService {
     TimelinePageResponse getHomeFeed(String userId, String cursor, int limit);
+
+    TimelinePageResponse getUserFeed(String userId, String cursor, int limit);
 }
