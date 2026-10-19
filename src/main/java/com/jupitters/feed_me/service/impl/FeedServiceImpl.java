@@ -83,6 +83,8 @@ public class FeedServiceImpl implements FeedService {
 
             FeedCursorCodec.FeedCursor pageCursor = FeedCursorCodec.parse(cursor);
             List<Post> posts = fetchUserFeedPosts(userId, pageCursor, pageSize + 1);
+            int totalItems = Math.toIntExact(postRepository.countByAuthor_Id(userId));
+
 
         }catch(ResponseStatusException e) {
             feedMetricsService.recordServiceError(
