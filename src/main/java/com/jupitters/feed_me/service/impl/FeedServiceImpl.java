@@ -96,7 +96,12 @@ public class FeedServiceImpl implements FeedService {
     }
 
     private List<Post> fetchUserFeedPosts(String userId, FeedCursorCodec.FeedCursor pageCursor, int fetchSize) {
+        PageRequest pageRequest = PageRequest.of(0, fetchSize);
+        if(pageCursor == null) {
+            return postRepository.findByAuthor_IdOrderByCreatedAtDescIdDesc(userId, pageRequest);
+        }
 
+        return postRepository.findUserFeedPageAfterCursor(userId, pageCursor.createdAt(), pageCursor.postId(), pageRequest);
     }
 
     private TimelinePageResponse mergeHomeFeedSlices(String userId, int totalItems, int pageSize, FeedSlice normalSlice, FeedSlice hotSlice) {
