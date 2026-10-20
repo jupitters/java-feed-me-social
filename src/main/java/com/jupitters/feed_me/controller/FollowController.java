@@ -21,4 +21,9 @@ public class FollowController {
     public FollowResponse follow(@RequestParam String followerId, @PathVariable String userId) {
         return feedService.follow(followerId, userId);
     }
+
+    @DeleteMapping
+    public FollowResponse unfollow(@RequestParam String followerId, @PathVariable String userId) {
+        return feedService.unfollow(followerId, userId);
+    }
 }
