@@ -119,7 +119,7 @@ public class FeedServiceImpl implements FeedService {
     public FollowResponse follow(String followerId, String targetUserId) {
         long startedAtNanos = feedMetricsService.startTimer();
         try{
-            validadeFollowRequest(followerId, targetUserId);
+            validateFollowRequest(followerId, targetUserId);
 
             UserProfile follower = getUser(followerId);
             UserProfile target = getUser(targetUserId);
@@ -146,7 +146,7 @@ public class FeedServiceImpl implements FeedService {
         }
     }
 
-    private void validadeFollowRequest(String followerId, String targetUserId) {
+    private void validateFollowRequest(String followerId, String targetUserId) {
         if(followerId.equals(targetUserId)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -159,8 +159,27 @@ public class FeedServiceImpl implements FeedService {
     }
 
     @Override
-    public FollowResponse unfollow(String followerId, String userId) {
-        return null;
+    public FollowResponse unfollow(String followerId, String targetUserId) {
+        long startedAtNanos = feedMetricsService.startTimer();
+
+        try {
+            validateFollowRequest(followerId, targetUserId);
+            FollowRelationId relationId = new FollowRelationId(followerId, targetUserId);
+            boolean relationExisted = followRelationRepository.existsById(relationId);
+
+            followRelationRepository.deleteById(relationId);
+            feedCacheService.evictHomeFeed(followerId);
+            feedMetricsService.recordFollowRequest(startedAtNanos, "unfollow",  relationExisted);
+
+            return new FollowResponse(followerId, targetUserId, false, Math.toIntExact(
+                    followRelationRepository.countByFollower_Id(followerId)
+            ));
+        } catch (ResponseStatusException e) {
+            feedMetricsService.recordServiceError(
+                    "unfollow", e.getStatusCode().toString()
+            );
+            throw e;
+        }
     }
 
     private UserProfileResponse toUserProfileResponse(UserProfile user) {
