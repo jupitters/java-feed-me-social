@@ -3,6 +3,7 @@ package com.jupitters.feed_me.service.impl;
 import com.jupitters.feed_me.dto.FeedItemResponse;
 import com.jupitters.feed_me.dto.TimelineMode;
 import com.jupitters.feed_me.dto.TimelinePageResponse;
+import com.jupitters.feed_me.dto.UserProfileResponse;
 import com.jupitters.feed_me.model.FollowRelation;
 import com.jupitters.feed_me.model.Post;
 import com.jupitters.feed_me.model.UserProfile;
@@ -17,6 +18,7 @@ import com.jupitters.feed_me.service.FeedService;
 import jakarta.transaction.Status;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,6 +98,23 @@ public class FeedServiceImpl implements FeedService {
             );
             throw e;
         }
+    }
+
+    @Override
+    public List<UserProfileResponse> getUsers() {
+        return userProfileRepository.findAll(Sort.by("id")).stream()
+                .map(this::toUserProfileResponse)
+                .toList();
+    }
+
+    private UserProfileResponse toUserProfileResponse(UserProfile user) {
+        return new UserProfileResponse(
+                user.getId(),
+                user.getHandle(),
+                user.getName(),
+                user.getBio(),
+                user.isHotUser()
+        );
     }
 
     private TimelinePageResponse buildTimelinePage(String timelineOwnerId, TimelineMode mode, List<Post> posts, int totalItems, int pageSize) {
