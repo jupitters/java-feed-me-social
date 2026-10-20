@@ -1,9 +1,6 @@
 package com.jupitters.feed_me.service.impl;
 
-import com.jupitters.feed_me.dto.FeedItemResponse;
-import com.jupitters.feed_me.dto.TimelineMode;
-import com.jupitters.feed_me.dto.TimelinePageResponse;
-import com.jupitters.feed_me.dto.UserProfileResponse;
+import com.jupitters.feed_me.dto.*;
 import com.jupitters.feed_me.model.FollowRelation;
 import com.jupitters.feed_me.model.Post;
 import com.jupitters.feed_me.model.UserProfile;
@@ -105,6 +102,16 @@ public class FeedServiceImpl implements FeedService {
         return userProfileRepository.findAll(Sort.by("id")).stream()
                 .map(this::toUserProfileResponse)
                 .toList();
+    }
+
+    @Override
+    public FollowingResponse getFollowing(String followerId) {
+        getUser(followerId);
+        List<String> targetUserIds = followRelationRepository.findByFollower_Id(followerId).stream()
+                .map(relation -> relation.getTargetUser().getId())
+                .toList();
+
+        return new FollowingResponse(followerId, targetUserIds, targetUserIds.size());
     }
 
     private UserProfileResponse toUserProfileResponse(UserProfile user) {
