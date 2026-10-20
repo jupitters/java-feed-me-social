@@ -84,8 +84,11 @@ public class FeedServiceImpl implements FeedService {
             FeedCursorCodec.FeedCursor pageCursor = FeedCursorCodec.parse(cursor);
             List<Post> posts = fetchUserFeedPosts(userId, pageCursor, pageSize + 1);
             int totalItems = Math.toIntExact(postRepository.countByAuthor_Id(userId));
+            TimelinePageResponse response = buildTimelinePage(userId, TimelineMode.USER, posts, totalItems, pageSize);
+            
+            feedMetricsService.recordUserFeedRequest(startedAtNanos, response.nextCursor() != null, response.items().size());
 
-
+            return response;
         }catch(ResponseStatusException e) {
             feedMetricsService.recordServiceError(
                     "get_user_feed",
@@ -93,8 +96,21 @@ public class FeedServiceImpl implements FeedService {
             );
             throw e;
         }
+    }
 
-        return null;
+    private TimelinePageResponse buildTimelinePage(String timelineOwnerId, TimelineMode mode, List<Post> posts, int totalItems, int pageSize) {
+        boolean hasMore = posts.size() > pageSize;
+        List<Post> pagePosts = hasMore ? posts.subList(0, pageSize) : posts;
+
+        List<FeedItemResponse> pageItems = pagePosts.stream()
+                .map(post -> toFeedItem(post, timelineOwnerId, Set.of(timelineOwnerId)))
+                .toList();
+
+        String nextCursor = hasMore && !pageItems.isEmpty()
+                ? FeedCursorCodec.encode(pageItems.get(pageItems.size() - 1))
+                : null;
+
+        return new TimelinePageResponse(timelineOwnerId, mode, totalItems, pageItems, nextCursor);
     }
 
     private List<Post> fetchUserFeedPosts(String userId, FeedCursorCodec.FeedCursor pageCursor, int fetchSize) {
