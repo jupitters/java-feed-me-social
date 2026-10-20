@@ -182,6 +182,18 @@ public class FeedServiceImpl implements FeedService {
         }
     }
 
+    @Override
+    @Transactional
+    public PostResponse createPost(String authorId, String content, String idempotencyKey) {
+        long startedAtNanos= feedMetricsService.startTimer();
+        UserProfile author = getUser(authorId);
+        String authorType = author.isHotUser() ? "hot" : "normal";
+
+        String normalizedContent = content.trim();
+
+        return null;
+    }
+
     private UserProfileResponse toUserProfileResponse(UserProfile user) {
         return new UserProfileResponse(
                 user.getId(),

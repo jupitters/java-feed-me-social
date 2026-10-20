@@ -1,9 +1,8 @@
 package com.jupitters.feed_me.service;
 
-import com.jupitters.feed_me.dto.FollowResponse;
-import com.jupitters.feed_me.dto.FollowingResponse;
-import com.jupitters.feed_me.dto.TimelinePageResponse;
-import com.jupitters.feed_me.dto.UserProfileResponse;
+import com.jupitters.feed_me.dto.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -19,4 +18,6 @@ public interface FeedService {
     FollowResponse follow(String followerId, String userId);
 
     FollowResponse unfollow(String followerId, String userId);
+
+    PostResponse createPost(String authorId, String content, String idempotencyKey);
 }
