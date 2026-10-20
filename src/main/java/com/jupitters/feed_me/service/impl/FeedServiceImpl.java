@@ -138,11 +138,12 @@ public class FeedServiceImpl implements FeedService {
 
             return new FollowResponse(followerId, targetUserId, true,
                     Math.toIntExact(followRelationRepository.countByFollower_Id(followerId)));
-        } catch () {
-
+        } catch (ResponseStatusException e) {
+            feedMetricsService.recordServiceError(
+                    "follow", e.getStatusCode().toString()
+            );
+            throw e;
         }
-
-        return null;
     }
 
     private void validadeFollowRequest(String followerId, String targetUserId) {
