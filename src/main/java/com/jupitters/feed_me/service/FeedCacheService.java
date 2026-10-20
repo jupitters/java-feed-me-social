@@ -55,4 +55,13 @@ public class FeedCacheService {
             //ignore
         }
     }
+
+    public void evictHomeFeed(String userId) {
+        try{
+            redisTemplate.delete(homeFeedKey(userId));
+            feedMetricsService.recordCacheMutation("evict");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

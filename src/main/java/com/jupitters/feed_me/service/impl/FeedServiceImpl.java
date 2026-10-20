@@ -2,6 +2,7 @@ package com.jupitters.feed_me.service.impl;
 
 import com.jupitters.feed_me.dto.*;
 import com.jupitters.feed_me.model.FollowRelation;
+import com.jupitters.feed_me.model.FollowRelationId;
 import com.jupitters.feed_me.model.Post;
 import com.jupitters.feed_me.model.UserProfile;
 import com.jupitters.feed_me.repository.FollowRelationRepository;
@@ -112,6 +113,53 @@ public class FeedServiceImpl implements FeedService {
                 .toList();
 
         return new FollowingResponse(followerId, targetUserIds, targetUserIds.size());
+    }
+
+    @Override
+    public FollowResponse follow(String followerId, String targetUserId) {
+        long startedAtNanos = feedMetricsService.startTimer();
+        try{
+            validadeFollowRequest(followerId, targetUserId);
+
+            UserProfile follower = getUser(followerId);
+            UserProfile target = getUser(targetUserId);
+
+            FollowRelationId relationId = new FollowRelationId(followerId, targetUserId);
+
+            boolean createdRelation = false;
+
+            if(!followRelationRepository.existsById(relationId)) {
+                followRelationRepository.save(new FollowRelation(follower, target));
+                createdRelation = true;
+            }
+
+            feedCacheService.evictHomeFeed(followerId);
+            feedMetricsService.recordFollowRequest(startedAtNanos, "follow",  createdRelation);
+
+            return new FollowResponse(followerId, targetUserId, true,
+                    Math.toIntExact(followRelationRepository.countByFollower_Id(followerId)));
+        } catch () {
+
+        }
+
+        return null;
+    }
+
+    private void validadeFollowRequest(String followerId, String targetUserId) {
+        if(followerId.equals(targetUserId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Users cannot follow themselves"
+            );
+        }
+
+        getUser(followerId);
+        getUser(targetUserId);
+    }
+
+    @Override
+    public FollowResponse unfollow(String followerId, String userId) {
+        return null;
     }
 
     private UserProfileResponse toUserProfileResponse(UserProfile user) {

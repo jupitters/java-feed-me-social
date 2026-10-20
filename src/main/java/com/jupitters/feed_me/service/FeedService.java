@@ -1,5 +1,6 @@
 package com.jupitters.feed_me.service;
 
+import com.jupitters.feed_me.dto.FollowResponse;
 import com.jupitters.feed_me.dto.FollowingResponse;
 import com.jupitters.feed_me.dto.TimelinePageResponse;
 import com.jupitters.feed_me.dto.UserProfileResponse;
@@ -14,4 +15,8 @@ public interface FeedService {
     List<UserProfileResponse> getUsers();
 
     FollowingResponse getFollowing(String followerId);
+
+    FollowResponse follow(String followerId, String userId);
+
+    FollowResponse unfollow(String followerId, String userId);
 }
