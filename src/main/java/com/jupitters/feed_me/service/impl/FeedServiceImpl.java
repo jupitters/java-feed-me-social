@@ -191,6 +191,10 @@ public class FeedServiceImpl implements FeedService {
 
         String normalizedContent = content.trim();
 
+        try {
+            String requestHash = hashCratePostRequest(authorId, normalizedContent);
+        }
+        
         return null;
     }
 
@@ -456,6 +460,8 @@ public class FeedServiceImpl implements FeedService {
         }
         return Math.min(limit, 20);
     }
+
+    private record IdempotencyPostAttempt(Optional<Post> )
 
     private record VisibleAuthors(Set<String> allAuthorIds, Set<String> hotAuthorIds, Set<String> nonHotAuthorIds) {
     }
