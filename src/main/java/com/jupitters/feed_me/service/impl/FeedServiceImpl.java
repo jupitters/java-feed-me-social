@@ -1,10 +1,7 @@
 package com.jupitters.feed_me.service.impl;
 
 import com.jupitters.feed_me.dto.*;
-import com.jupitters.feed_me.model.FollowRelation;
-import com.jupitters.feed_me.model.FollowRelationId;
-import com.jupitters.feed_me.model.Post;
-import com.jupitters.feed_me.model.UserProfile;
+import com.jupitters.feed_me.model.*;
 import com.jupitters.feed_me.repository.FollowRelationRepository;
 import com.jupitters.feed_me.repository.PostRepository;
 import com.jupitters.feed_me.repository.UserProfileRepository;
@@ -193,6 +190,8 @@ public class FeedServiceImpl implements FeedService {
 
         try {
             String requestHash = hashCratePostRequest(authorId, normalizedContent);
+
+
         }
         
         return null;
@@ -461,7 +460,7 @@ public class FeedServiceImpl implements FeedService {
         return Math.min(limit, 20);
     }
 
-    private record IdempotencyPostAttempt(Optional<Post> )
+    private record IdempotencyPostAttempt(Optional<PostCreationRequest> requestRecord, Optional<PostResponse> replayedResponse, boolean isProgress){}
 
     private record VisibleAuthors(Set<String> allAuthorIds, Set<String> hotAuthorIds, Set<String> nonHotAuthorIds) {
     }
