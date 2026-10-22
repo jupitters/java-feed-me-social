@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -191,11 +194,30 @@ public class FeedServiceImpl implements FeedService {
         try {
             String requestHash = hashCratePostRequest(authorId, normalizedContent);
 
-
+            IdempotencyPostAttempt attempt = resolveCreatePostAttempt(authorId, idempotencyKey, requestHash);
         }
         
         return null;
     }
+
+    private String hashCratePostRequest(String authorId, String normalizedContent) {
+        MessageDigest digest;
+        try{
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 should be available");
+        }
+
+        byte[] hash = digest.digest((authorId + "\n" +normalizedContent).getBytes(StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder(hash.length * 2);
+
+        for(byte hashByte: hash) {
+            sb.append(String.format("%02x", hashByte));
+        }
+
+        return sb.toString();
+    }
+
 
     private UserProfileResponse toUserProfileResponse(UserProfile user) {
         return new UserProfileResponse(
