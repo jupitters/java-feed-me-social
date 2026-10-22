@@ -200,6 +200,9 @@ public class FeedServiceImpl implements FeedService {
         return null;
     }
 
+    private IdempotencyPostAttempt resolveCreatePostAttempt(String authorId, String idempotencyKey, String requestHash) {
+    }
+
     private String hashCratePostRequest(String authorId, String normalizedContent) {
         MessageDigest digest;
         try{
