@@ -244,6 +244,11 @@ public class FeedServiceImpl implements FeedService {
     }
 
     private PostCreationRequest validateAndReuseCreatePostRequest(PostCreationRequest existing, String requestHash) {
+        if(!existing.getRequestHash().equals(requestHash)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency key already used for a different post request");
+        }
+
+        return existing;
     }
 
     private String hashCratePostRequest(String authorId, String normalizedContent) {
