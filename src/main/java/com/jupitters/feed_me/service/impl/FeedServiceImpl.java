@@ -235,12 +235,15 @@ public class FeedServiceImpl implements FeedService {
     private IdempotencyPostAttempt handleExistingCreatePostRequest(PostCreationRequest existing, String requestHash) {
         PostCreationRequest validatedRecord = validateAndReuseCreatePostRequest(existing, requestHash);
 
-        return switch(validateRecord.getStatus()) {
+        return switch(validatedRecord.getStatus()) {
             case SUCCEEDED -> new IdempotencyPostAttempt(Optional.empty(),
                     Optional.of(getPost(validatedRecord.getPostId())), false);
             case IN_PROGRESS -> new IdempotencyPostAttempt(Optional.empty(),
                     Optional.empty(), true);
         };
+    }
+
+    private PostResponse getPost(String postId) {
     }
 
     private PostCreationRequest validateAndReuseCreatePostRequest(PostCreationRequest existing, String requestHash) {
