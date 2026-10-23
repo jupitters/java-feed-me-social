@@ -3,6 +3,7 @@ package com.jupitters.feed_me.service.impl;
 import com.jupitters.feed_me.dto.*;
 import com.jupitters.feed_me.model.*;
 import com.jupitters.feed_me.repository.FollowRelationRepository;
+import com.jupitters.feed_me.repository.PostCreationRequestRepository;
 import com.jupitters.feed_me.repository.PostRepository;
 import com.jupitters.feed_me.repository.UserProfileRepository;
 import com.jupitters.feed_me.service.FeedCacheService;
@@ -12,6 +13,7 @@ import com.jupitters.feed_me.service.FeedService;
 
 import jakarta.transaction.Status;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -40,6 +42,7 @@ public class FeedServiceImpl implements FeedService {
     private final FollowRelationRepository followRelationRepository;
     private final FeedCacheService feedCacheService;
     private final PostRepository postRepository;
+    private final PostCreationRequestRepository postCreationRequestRepository;
 
     @Override
     public TimelinePageResponse getHomeFeed(String userId, String cursor, int limit) {
@@ -201,6 +204,29 @@ public class FeedServiceImpl implements FeedService {
     }
 
     private IdempotencyPostAttempt resolveCreatePostAttempt(String authorId, String idempotencyKey, String requestHash) {
+        Optional<PostCreationRequest> existingRequest =
+                postCreationRequestRepository.findByUserIdAndIdempotencyKey(authorId, idempotencyKey);
+
+        if(existingRequest.isPresent()) {
+            return handleExistingCreatePostRequest(existingRequest.get(), requestHash);
+        }
+
+        try{
+            PostCreationRequest entity = new PostCreationRequest(authorId, idempotencyKey, requestHash);
+            postCreationRequestRepository.saveAndFlush(entity);
+            return new IdempotencyPostAttempt(
+                    Optional.of(entity),
+                    Optional.empty(),
+                    false
+            );
+        } catch(DataIntegrityViolationException e) {
+            PostCreationRequest existing = postCreationRequestRepository
+                    .findByUserIdAndIdempotencyKey(authorId, idempotencyKey)
+                    .orElseThrow(() -> e);
+
+            return handleExistingCreatePostRequest(existing, requestHash);
+        }
+
     }
 
     private String hashCratePostRequest(String authorId, String normalizedContent) {
