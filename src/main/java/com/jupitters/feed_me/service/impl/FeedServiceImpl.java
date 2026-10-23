@@ -243,6 +243,9 @@ public class FeedServiceImpl implements FeedService {
         };
     }
 
+    private PostCreationRequest validateAndReuseCreatePostRequest(PostCreationRequest existing, String requestHash) {
+    }
+
     private String hashCratePostRequest(String authorId, String normalizedContent) {
         MessageDigest digest;
         try{
