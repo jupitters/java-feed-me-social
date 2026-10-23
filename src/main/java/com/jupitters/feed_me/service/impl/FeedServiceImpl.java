@@ -28,6 +28,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
+import static com.jupitters.feed_me.model.PostCreationStatus.IN_PROGRESS;
+import static com.jupitters.feed_me.model.PostCreationStatus.SUCCEEDED;
+
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -227,6 +230,17 @@ public class FeedServiceImpl implements FeedService {
             return handleExistingCreatePostRequest(existing, requestHash);
         }
 
+    }
+
+    private IdempotencyPostAttempt handleExistingCreatePostRequest(PostCreationRequest existing, String requestHash) {
+        PostCreationRequest validatedRecord = validateAndReuseCreatePostRequest(existing, requestHash);
+
+        return switch(validateRecord.getStatus()) {
+            case SUCCEEDED -> new IdempotencyPostAttempt(Optional.empty(),
+                    Optional.of(getPost(validatedRecord.getPostId())), false);
+            case IN_PROGRESS -> new IdempotencyPostAttempt(Optional.empty(),
+                    Optional.empty(), true);
+        };
     }
 
     private String hashCratePostRequest(String authorId, String normalizedContent) {
