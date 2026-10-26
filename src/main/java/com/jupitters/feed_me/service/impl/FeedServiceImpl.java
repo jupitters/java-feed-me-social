@@ -244,6 +244,14 @@ public class FeedServiceImpl implements FeedService {
     }
 
     private PostResponse getPost(String postId) {
+        return postRepository.findById(postId)
+                .map(this::toPostResponse)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found!"));
+    }
+
+    private PostResponse toPostResponse(Post post) {
+        UserProfile author = post.getAuthor();
+        return new PostResponse(post.getId(), author.getId(), author.getHandle(), author.getName(), post.getContent(), post.getCreatedAt());
     }
 
     private PostCreationRequest validateAndReuseCreatePostRequest(PostCreationRequest existing, String requestHash) {
