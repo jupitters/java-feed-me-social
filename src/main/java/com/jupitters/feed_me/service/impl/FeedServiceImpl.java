@@ -201,6 +201,10 @@ public class FeedServiceImpl implements FeedService {
             String requestHash = hashCratePostRequest(authorId, normalizedContent);
 
             IdempotencyPostAttempt attempt = resolveCreatePostAttempt(authorId, idempotencyKey, requestHash);
+            
+            if(attempt.replayedResponse().isPresent()) {
+                feedMetricsService.
+            }
         }
         
         return null;
