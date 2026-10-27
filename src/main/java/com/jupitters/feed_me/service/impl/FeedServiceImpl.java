@@ -203,8 +203,22 @@ public class FeedServiceImpl implements FeedService {
             IdempotencyPostAttempt attempt = resolveCreatePostAttempt(authorId, idempotencyKey, requestHash);
             
             if(attempt.replayedResponse().isPresent()) {
-                feedMetricsService.
+                feedMetricsService.recordPostCreation(startedAtNanos, authorType, "replay");
+                return attempt.replayedResponse().get();
             }
+
+            if(attempt.isProgress()) {
+                feedMetricsService.recordPostCreation(startedAtNanos, authorType, "in_progress");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Post creation already in progress");
+            }
+
+            Post post = postRepository.save(new Post(
+                    UUID.randomUUID().toString(),
+                    author,
+                    normalizedContent
+            ));
+
+
         }
         
         return null;
