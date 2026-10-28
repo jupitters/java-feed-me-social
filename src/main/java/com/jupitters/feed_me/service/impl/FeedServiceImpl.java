@@ -232,9 +232,8 @@ public class FeedServiceImpl implements FeedService {
             }
 
             feedMetricsService.recordServiceError("create_post", e.getStatusCode().toString());
+            throw e;
         }
-        
-        return null;
     }
 
     private IdempotencyPostAttempt resolveCreatePostAttempt(String authorId, String idempotencyKey, String requestHash) {
