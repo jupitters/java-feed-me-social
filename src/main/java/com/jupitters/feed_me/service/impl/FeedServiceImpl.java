@@ -273,7 +273,7 @@ public class FeedServiceImpl implements FeedService {
         };
     }
 
-    private PostResponse getPost(String postId) {
+    public PostResponse getPost(String postId) {
         return postRepository.findById(postId)
                 .map(this::toPostResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found!"));
