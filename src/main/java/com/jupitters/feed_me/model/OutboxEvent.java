@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "outbox_events")
@@ -26,7 +27,7 @@ public class OutboxEvent {
     private String authorId;
 
     @Column(nullable = false)
-    private String hotUser;
+    private boolean hotUser;
 
     @Column(nullable = false)
     private Instant occurredAt;
@@ -46,5 +47,22 @@ public class OutboxEvent {
     @Column(nullable = false)
     private Instant createdAt;
     
-    
+    public OutboxEvent(Post post) {
+        this.id = UUID.randomUUID().toString();
+        this.eventType = OutboxEventType.POST_CREATED;
+        this.postId = post.getId();
+        this.authorId = post.getAuthor().getId();
+        this.hotUser = post.getAuthor().isHotUser();
+        this.occurredAt = post.getCreatedAt();
+        this.status = OutboxEventStatus.PENDING;
+        this.attemptCount = 0;
+        this.nextAttemptAt = Instant.now();
+    }
+
+    @PrePersist
+    void onCreate() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
 }
