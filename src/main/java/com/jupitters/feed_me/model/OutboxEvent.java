@@ -73,4 +73,16 @@ public class OutboxEvent {
     void onUpdate() {
         this.updatedAt = Instant.now();
     }
+
+    public markPublished() {
+        this.status = OutboxEventStatus.PUBLISHED;
+    }
+
+    public void scheduleRetry(Instant nextAttemptAt, int maxAttempts) {
+        this.attemptCount++;
+        this.nextAttemptAt = nextAttemptAt;
+        if(this.attemptCount >= maxAttempts) {
+            this.status = OutboxEventStatus.FAILED;
+        }
+    }
 }
