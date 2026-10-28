@@ -6,10 +6,7 @@ import com.jupitters.feed_me.repository.FollowRelationRepository;
 import com.jupitters.feed_me.repository.PostCreationRequestRepository;
 import com.jupitters.feed_me.repository.PostRepository;
 import com.jupitters.feed_me.repository.UserProfileRepository;
-import com.jupitters.feed_me.service.FeedCacheService;
-import com.jupitters.feed_me.service.FeedCursorCodec;
-import com.jupitters.feed_me.service.FeedMetricsService;
-import com.jupitters.feed_me.service.FeedService;
+import com.jupitters.feed_me.service.*;
 
 import jakarta.transaction.Status;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
@@ -46,6 +44,7 @@ public class FeedServiceImpl implements FeedService {
     private final FeedCacheService feedCacheService;
     private final PostRepository postRepository;
     private final PostCreationRequestRepository postCreationRequestRepository;
+    private final FeedEventOutboxService feedEventOutboxService;
 
     @Override
     public TimelinePageResponse getHomeFeed(String userId, String cursor, int limit) {
@@ -218,7 +217,21 @@ public class FeedServiceImpl implements FeedService {
                     normalizedContent
             ));
 
+            feedEventOutboxService.enqueuePostCreated(post);
 
+            attempt.requestRecord().orElseThrow().markSucceeded(post.getId());
+
+            feedMetricsService.recordPostCreation(startedAtNanos, authorType, "new");
+
+            return toPostResponse(post);
+        } catch(ResponseStatusException e) {
+            if(e.getStatusCode().equals(HttpStatus.CONFLICT)
+                    && e.getReason() != null
+                    && e.getReason().contains("Idempotency key")){
+                feedMetricsService.recordPostCreation(startedAtNanos, authorType, "conflict");
+            }
+
+            feedMetricsService.recordServiceError("create_post", e.getStatusCode().toString());
         }
         
         return null;
