@@ -74,7 +74,7 @@ public class OutboxEvent {
         this.updatedAt = Instant.now();
     }
 
-    public markPublished() {
+    public void markPublished() {
         this.status = OutboxEventStatus.PUBLISHED;
     }
 
