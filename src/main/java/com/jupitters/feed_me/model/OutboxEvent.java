@@ -64,5 +64,13 @@ public class OutboxEvent {
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if(nextAttemptAt == null) {
+            this.nextAttemptAt = now;
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = Instant.now();
     }
 }
