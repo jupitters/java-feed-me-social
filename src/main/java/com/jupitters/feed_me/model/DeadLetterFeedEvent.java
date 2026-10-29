@@ -1,11 +1,19 @@
 package com.jupitters.feed_me.model;
 
+import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Entity
+@Table(name = "dead_letter_feed_events")
+@Getter
+@NoArgsConstructor
 public class DeadLetterFeedEvent {
     @Id
     private String id;
